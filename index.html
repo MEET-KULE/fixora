@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fixora – Find & Offer Local Services</title>
+<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080e1c;--bg2:#0c1526;--surface:#111d35;--surface2:#162240;--surface3:#1c2e52;
+  --border:#1e3060;--border2:#243870;
+  --blue:#2563eb;--blue-l:#3b82f6;--blue-ll:#60a5fa;--glow:rgba(37,99,235,.2);
+  --cyan:#06b6d4;--text:#e2eaf8;--text2:#94a3c8;--muted:#4a6090;
+  --green:#10b981;--red:#ef4444;--amber:#f59e0b;--gold:#fbbf24;
+}
+html,body{height:100%;scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+.page{display:none;min-height:100vh;flex-direction:column}
+.page.active{display:flex}
+
+/* ── TOPBAR ── */
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:.9rem 2rem;border-bottom:1px solid var(--border);
+  background:rgba(8,14,28,.96);backdrop-filter:blur(16px);
+  position:sticky;top:0;z-index:900;flex-shrink:0;
+}
+.logo{
+  font-family:'Clash Display',sans-serif;font-weight:700;font-size:1.5rem;
+  background:linear-gradient(135deg,#60a5fa,#2563eb);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.02em;
+  cursor:pointer;
+}
+.logo sub{font-size:.5rem;vertical-align:super;-webkit-text-fill-color:var(--cyan)}
+.topbar-right{display:flex;gap:.6rem}
+.btn-ghost{background:transparent;border:1.5px solid var(--border2);border-radius:9px;color:var(--text2);padding:.48rem 1rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:.85rem;font-weight:500;transition:all .2s}
+.btn-ghost:hover{border-color:var(--blue-l);color:var(--text)}
+.btn-primary{background:var(--blue);border:none;border-radius:9px;color:#fff;padding:.5rem 1.1rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:.85rem;font-weight:600;transition:all .2s;box-shadow:0 0 20px var(--glow)}
+.btn-primary:hover{background:var(--blue-l);box-shadow:0 0 28px rgba(37,99,235,.5)}
+
+/* ══════════════════
+   LANDING
+══════════════════ */
+#pg-land{background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(37,99,235,.18),transparent)}
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 2rem 3rem;text-align:center}
+.eyebrow{display:inline-flex;align-items:center;gap:.5rem;background:rgba(37,99,235,.12);border:1px solid rgba(96,165,250,.25);border-radius:999px;padding:.35rem 1rem;font-size:.78rem;font-weight:600;color:var(--blue-ll);letter-spacing:.05em;text-transform:uppercase;margin-bottom:1.8rem;animation:fadeUp .5s ease both}
+.hero h1{font-family:'Clash Display',sans-serif;font-size:clamp(2.6rem,6vw,4.5rem);font-weight:700;line-height:1.05;letter-spacing:-.03em;margin-bottom:1.2rem;animation:fadeUp .5s .08s ease both}
+.grad{background:linear-gradient(135deg,#60a5fa 0%,#2563eb 50%,#06b6d4 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{color:var(--text2);font-size:1.05rem;line-height:1.75;max-width:540px;margin-bottom:2.8rem;animation:fadeUp .5s .16s ease both}
+.hero-cards{display:flex;gap:1rem;margin-bottom:3rem;flex-wrap:wrap;justify-content:center;animation:fadeUp .5s .24s ease both}
+.hcard{background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:1.8rem 2.2rem;flex:1;min-width:220px;max-width:280px;cursor:pointer;transition:all .25s;text-align:left;position:relative;overflow:hidden}
+.hcard::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(37,99,235,.08),transparent);opacity:0;transition:opacity .3s}
+.hcard:hover{border-color:var(--blue);transform:translateY(-4px);box-shadow:0 20px 50px rgba(37,99,235,.2)}
+.hcard:hover::before{opacity:1}
+.hcard-icon{font-size:2rem;margin-bottom:.9rem}
+.hcard-title{font-family:'Clash Display',sans-serif;font-size:1.15rem;font-weight:600;margin-bottom:.4rem}
+.hcard-desc{color:var(--text2);font-size:.85rem;line-height:1.6}
+.hcard-arr{position:absolute;bottom:1.2rem;right:1.2rem;width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:transform .2s}
+.hcard:hover .hcard-arr{transform:translate(2px,-2px)}
+.hero-stats{display:flex;gap:2.5rem;color:var(--text2);font-size:.85rem;animation:fadeUp .5s .32s ease both}
+.stat strong{color:var(--text);font-family:'Clash Display',sans-serif;font-size:1.3rem;font-weight:600;display:block}
+
+/* ══════════════════
+   CUSTOMER PAGE
+══════════════════ */
+.search-strip{display:flex;align-items:center;gap:.5rem;padding:.8rem 1.5rem;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.search-strip input{flex:1;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:.62rem 1rem;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:.92rem;outline:none;transition:border-color .2s;min-width:0}
+.search-strip input:focus{border-color:var(--blue-l)}
+.search-strip input::placeholder{color:var(--muted)}
+.btn-gps{background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;color:var(--blue-ll);padding:.62rem .9rem;cursor:pointer;font-size:.85rem;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.btn-gps:hover{background:var(--glow);border-color:var(--blue-l)}
+.btn-go{background:var(--blue);color:#fff;font-weight:700;border:none;border-radius:10px;padding:.62rem 1.4rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:.92rem;transition:opacity .15s;flex-shrink:0;box-shadow:0 0 16px var(--glow)}
+.btn-go:hover{opacity:.85}
+.btn-go:disabled{opacity:.45;cursor:not-allowed}
+
+.cat-strip{display:flex;gap:.4rem;padding:.6rem 1.5rem;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;scrollbar-width:none}
+.cat-strip::-webkit-scrollbar{display:none}
+.chip{display:flex;align-items:center;gap:.28rem;padding:.35rem .8rem;background:var(--surface);border:1.5px solid var(--border);border-radius:999px;cursor:pointer;font-size:.8rem;color:var(--text2);white-space:nowrap;transition:all .18s;flex-shrink:0}
+.chip:hover,.chip.active{border-color:var(--blue-l);color:var(--blue-ll);background:rgba(37,99,235,.1)}
+
+.body-split{display:flex;flex:1;overflow:hidden;min-height:0}
+#map{flex:1;min-width:0}
+
+.rpanel{width:380px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.rp-hdr{padding:.8rem 1rem .55rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.rp-title{font-family:'Clash Display',sans-serif;font-weight:600;font-size:.95rem}
+.rp-count{color:var(--text2);font-size:.77rem}
+.rp-list{padding:.65rem;display:flex;flex-direction:column;gap:.55rem;overflow-y:auto;flex:1}
+
+/* Service Card */
+.scard{background:var(--surface2);border:1.5px solid var(--border);border-radius:13px;padding:.85rem;cursor:pointer;transition:all .22s;animation:fadeUp .35s ease both}
+.scard:hover{border-color:var(--blue);background:rgba(37,99,235,.05)}
+.scard.hl{border-color:var(--blue-l);box-shadow:0 0 0 2px rgba(59,130,246,.2)}
+.sc-top{display:flex;gap:.65rem;align-items:flex-start;margin-bottom:.55rem}
+.savatar{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.35rem;flex-shrink:0}
+.sc-name{font-family:'Clash Display',sans-serif;font-weight:600;font-size:.9rem;margin-bottom:.1rem}
+.sc-role{color:var(--blue-ll);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.sc-dist{color:var(--muted);font-size:.74rem;margin-top:.1rem}
+.avpill{padding:.15rem .55rem;border-radius:999px;font-size:.64rem;font-weight:700;text-transform:uppercase;flex-shrink:0}
+.av-y{background:rgba(16,185,129,.15);color:var(--green)}
+.av-n{background:rgba(239,68,68,.1);color:var(--red)}
+
+/* Safety badge */
+.safety-row{display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem;flex-wrap:wrap}
+.safety-badge{display:flex;align-items:center;gap:.25rem;padding:.18rem .55rem;border-radius:999px;font-size:.69rem;font-weight:600}
+.sb-verified{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:var(--green)}
+.sb-trusted{background:rgba(37,99,235,.12);border:1px solid rgba(59,130,246,.3);color:var(--blue-ll)}
+.sb-safe{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--amber)}
+.safety-score{display:flex;align-items:center;gap:.25rem;font-size:.75rem;color:var(--text2)}
+.safety-score span{color:var(--green);font-weight:700}
+
+.stars-row{display:flex;align-items:center;gap:.32rem;margin-bottom:.38rem;font-size:.79rem}
+.stars{color:#f59e0b;font-size:.76rem}
+.rnum{font-weight:700}.rcnt{color:var(--text2);font-size:.72rem;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.rcnt:hover{color:var(--blue-ll)}
+.pprice{margin-left:auto;color:var(--blue-ll);font-weight:700;font-size:.84rem}
+.stags{display:flex;gap:.28rem;flex-wrap:wrap;margin-bottom:.6rem}
+.stag{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:.1rem .38rem;font-size:.69rem;color:var(--text2)}
+.sc-footer{display:flex;gap:.42rem}
+.btn-ring{display:flex;align-items:center;gap:.28rem;padding:.45rem .7rem;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:.76rem;font-weight:500;text-decoration:none;transition:all .18s;flex-shrink:0}
+.btn-ring:hover{border-color:var(--green);color:var(--green)}
+.btn-bk{flex:1;padding:.45rem;background:var(--blue);border:none;border-radius:8px;color:#fff;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:.8rem;cursor:pointer;transition:opacity .15s;box-shadow:0 0 10px var(--glow)}
+.btn-bk:hover{opacity:.85}
+.btn-bk:disabled{opacity:.35;cursor:not-allowed;background:var(--surface3);box-shadow:none}
+
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;color:var(--text2);gap:.65rem}
+.empty .big{font-size:2.5rem}
+.empty strong{color:var(--text);font-family:'Clash Display',sans-serif;font-size:.95rem}
+.empty p{font-size:.82rem;line-height:1.65}
+
+/* ══════════════════
+   REGISTER PAGE
+══════════════════ */
+#pg-reg{background:radial-gradient(ellipse 60% 40% at 70% 20%,rgba(37,99,235,.12),transparent)}
+.reg-wrap{flex:1;display:grid;grid-template-columns:1fr 1.1fr;gap:0;max-width:1100px;margin:0 auto;padding:2.5rem 2rem;width:100%;align-items:start}
+.reg-left{padding-right:3rem;position:sticky;top:5rem}
+.reg-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(37,99,235,.12);border:1px solid rgba(96,165,250,.2);border-radius:999px;padding:.3rem .9rem;font-size:.75rem;font-weight:600;color:var(--blue-ll);letter-spacing:.05em;text-transform:uppercase;margin-bottom:1.2rem}
+.reg-left h2{font-family:'Clash Display',sans-serif;font-size:clamp(1.8rem,3vw,2.6rem);font-weight:700;line-height:1.15;letter-spacing:-.025em;margin-bottom:.9rem}
+.reg-left h2 .bl{color:var(--blue-ll)}
+.reg-left p{color:var(--text2);font-size:.9rem;line-height:1.72;margin-bottom:1.5rem}
+.perks{display:flex;flex-direction:column;gap:.65rem}
+.perk{display:flex;align-items:center;gap:.7rem;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:.7rem 1rem;font-size:.85rem}
+
+.rform{background:var(--surface);border:1.5px solid var(--border);border-radius:22px;padding:2rem}
+.form-title{font-family:'Clash Display',sans-serif;font-weight:700;font-size:1.2rem;margin-bottom:.25rem}
+.form-sub{color:var(--text2);font-size:.83rem;margin-bottom:1.5rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+.fg{margin-bottom:.85rem}
+.fg label{display:block;font-size:.8rem;font-weight:600;margin-bottom:.35rem;color:var(--text2)}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:.65rem .9rem;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:.88rem;outline:none;transition:border-color .2s}
+.fg select option{background:var(--bg2)}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--blue-l)}
+.fg input::placeholder,.fg textarea::placeholder{color:var(--muted)}
+.fg input.err{border-color:var(--red)}
+.fg textarea{resize:none;height:80px}
+.srv-grid{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.85rem}
+.srv-chip{padding:.35rem .8rem;background:var(--bg2);border:1.5px solid var(--border);border-radius:999px;cursor:pointer;font-size:.8rem;color:var(--text2);transition:all .18s}
+.srv-chip:hover{border-color:var(--blue);color:var(--blue-ll)}
+.srv-chip.sel{border-color:var(--blue-l);color:#fff;background:var(--blue)}
+.srv-chip.oth-chip{border-style:dashed;border-color:var(--border2)}
+.srv-chip.oth-chip.sel{border-style:solid;background:var(--surface3)}
+.other-wrap{display:none;background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;padding:.75rem;margin-bottom:.85rem;animation:fadeUp .25s ease}
+.other-wrap.show{display:block}
+.other-wrap label{font-size:.78rem;font-weight:600;color:var(--blue-ll);display:block;margin-bottom:.4rem}
+.other-wrap input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:.55rem .85rem;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:.87rem;outline:none;transition:border-color .2s}
+.other-wrap input:focus{border-color:var(--blue-l)}
+.other-match{margin-top:.4rem;padding:.4rem .7rem;border-radius:7px;font-size:.78rem;display:none}
+.other-match.show{display:block}
+.submit-btn{width:100%;padding:.8rem;background:var(--blue);border:none;border-radius:12px;color:#fff;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:.95rem;cursor:pointer;transition:all .2s;margin-top:.5rem;box-shadow:0 4px 20px rgba(37,99,235,.35)}
+.submit-btn:hover{background:var(--blue-l);box-shadow:0 6px 28px rgba(37,99,235,.5)}
+
+/* ══════════════════
+   MODALS & OVERLAYS
+══════════════════ */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);z-index:5000;align-items:center;justify-content:center;padding:1rem}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border:1.5px solid var(--border2);border-radius:22px;padding:2rem;max-width:480px;width:100%;animation:fadeUp .3s ease;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:'Clash Display',sans-serif;font-weight:700;font-size:1.15rem;margin-bottom:.25rem}
+.modal-sub{color:var(--text2);font-size:.82rem;margin-bottom:1.3rem}
+
+/* Booking modal field error */
+.field-err{color:var(--red);font-size:.75rem;margin-top:.3rem;display:none}
+.field-err.show{display:block}
+
+/* ══════════════════
+   REVIEWS MODAL
+══════════════════ */
+.rev-modal{max-width:520px}
+.rev-hero{display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem;padding:1rem;background:var(--surface2);border-radius:12px}
+.rev-big-score{font-family:'Clash Display',sans-serif;font-size:2.8rem;font-weight:700;color:var(--text);line-height:1}
+.rev-big-stars{color:#f59e0b;font-size:1.1rem;margin:.2rem 0}
+.rev-total{color:var(--text2);font-size:.83rem}
+.safety-section{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:1rem;margin-bottom:1.2rem}
+.safety-title{font-family:'Clash Display',sans-serif;font-weight:600;font-size:.9rem;margin-bottom:.6rem;color:var(--green)}
+.safety-items{display:flex;flex-direction:column;gap:.45rem}
+.safety-item{display:flex;justify-content:space-between;align-items:center;font-size:.82rem}
+.safety-item .label{color:var(--text2)}
+.safety-bar-wrap{display:flex;align-items:center;gap:.5rem}
+.safety-bar{width:80px;height:5px;background:var(--surface3);border-radius:999px;overflow:hidden}
+.safety-fill{height:100%;background:var(--green);border-radius:999px}
+.safety-val{color:var(--green);font-weight:700;font-size:.78rem;min-width:28px;text-align:right}
+.review-list{display:flex;flex-direction:column;gap:.75rem;max-height:300px;overflow-y:auto;padding-right:.3rem}
+.review-item{background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:.85rem}
+.ri-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem}
+.ri-name{font-weight:600;font-size:.88rem}
+.ri-date{color:var(--muted);font-size:.74rem}
+.ri-stars{color:#f59e0b;font-size:.78rem;margin-bottom:.3rem}
+.ri-text{color:var(--text2);font-size:.83rem;line-height:1.6}
+.ri-badge{display:inline-flex;align-items:center;gap:.2rem;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:5px;padding:.1rem .4rem;font-size:.7rem;color:var(--green);margin-top:.4rem}
+
+/* ══════════════════
+   BOOKING MODAL
+══════════════════ */
+.book-pro-info{display:flex;align-items:center;gap:.8rem;padding:.85rem;background:var(--surface2);border-radius:12px;margin-bottom:1.2rem;border:1px solid var(--border)}
+.book-av{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0}
+.book-pro-name{font-family:'Clash Display',sans-serif;font-weight:600;font-size:.95rem}
+.book-pro-role{color:var(--blue-ll);font-size:.75rem;font-weight:600;margin-top:.1rem}
+.book-pro-price{color:var(--text2);font-size:.78rem;margin-top:.15rem}
+.req-star{color:var(--red);font-size:.85rem;margin-left:2px}
+.book-actions{display:flex;gap:.6rem;margin-top:1.2rem}
+.btn-book-cancel{flex:1;padding:.72rem;background:transparent;border:1.5px solid var(--border);border-radius:10px;color:var(--text2);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all .2s;font-size:.88rem}
+.btn-book-cancel:hover{border-color:var(--text);color:var(--text)}
+.btn-book-confirm{flex:2;padding:.72rem;background:var(--blue);border:none;border-radius:10px;color:#fff;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:.9rem;cursor:pointer;transition:all .2s;box-shadow:0 0 16px var(--glow)}
+.btn-book-confirm:hover{background:var(--blue-l)}
+
+/* ══════════════════
+   ARRIVAL / BOOKING DONE PAGE
+══════════════════ */
+#pg-arrival{background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(37,99,235,.18),transparent)}
+.arrival-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 2rem;text-align:center;max-width:600px;margin:0 auto;width:100%}
+.arr-checkmark{
+  width:90px;height:90px;border-radius:50%;background:var(--blue);
+  display:flex;align-items:center;justify-content:center;font-size:2.5rem;
+  margin:0 auto 1.5rem;box-shadow:0 0 0 16px rgba(37,99,235,.12),0 0 0 32px rgba(37,99,235,.06);
+  animation:popIn .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.arr-title{font-family:'Clash Display',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;letter-spacing:-.02em;margin-bottom:.6rem;animation:fadeUp .5s .2s ease both}
+.arr-sub{color:var(--text2);font-size:1rem;line-height:1.7;margin-bottom:2rem;animation:fadeUp .5s .3s ease both}
+
+.arr-card{
+  background:var(--surface);border:1.5px solid var(--border2);border-radius:20px;
+  padding:1.8rem;width:100%;margin-bottom:1.5rem;text-align:left;
+  animation:fadeUp .5s .4s ease both;
+}
+.arr-card-title{font-family:'Clash Display',sans-serif;font-size:.85rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1.1rem}
+.arr-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+.arr-info-item .ai-label{font-size:.75rem;color:var(--muted);margin-bottom:.2rem}
+.arr-info-item .ai-val{font-family:'Clash Display',sans-serif;font-size:1.05rem;font-weight:600;color:var(--text)}
+.arr-info-item .ai-val.big{font-size:1.4rem;color:var(--blue-ll)}
+
+.arr-eta-box{
+  background:linear-gradient(135deg,rgba(37,99,235,.15),rgba(6,182,212,.08));
+  border:1.5px solid rgba(37,99,235,.3);border-radius:16px;padding:1.4rem;
+  margin-bottom:1.5rem;text-align:center;animation:fadeUp .5s .5s ease both;
+  width:100%;
+}
+.eta-label{font-size:.8rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem}
+.eta-time{font-family:'Clash Display',sans-serif;font-size:3rem;font-weight:700;color:var(--blue-ll);line-height:1}
+.eta-unit{font-size:1rem;font-weight:400;color:var(--text2)}
+.eta-note{color:var(--text2);font-size:.83rem;margin-top:.5rem}
+
+.arr-track-btn{
+  padding:.8rem 2.5rem;background:var(--blue);border:none;border-radius:12px;
+  color:#fff;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:.95rem;
+  cursor:pointer;box-shadow:0 0 20px var(--glow);transition:all .2s;
+  animation:fadeUp .5s .6s ease both;
+  margin-bottom:.8rem;
+}
+.arr-track-btn:hover{background:var(--blue-l);box-shadow:0 0 28px rgba(37,99,235,.5)}
+.arr-home-link{color:var(--text2);font-size:.85rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px;animation:fadeUp .5s .7s ease both}
+.arr-home-link:hover{color:var(--text)}
+
+/* ══════════════════
+   LEAFLET DARK POPUP
+══════════════════ */
+.leaflet-popup-content-wrapper{background:#111d35!important;border:1px solid #1e3060!important;border-radius:13px!important;color:#e2eaf8!important;box-shadow:0 10px 36px rgba(0,0,0,.7)!important}
+.leaflet-popup-tip-container .leaflet-popup-tip{background:#111d35!important}
+.leaflet-popup-content{font-family:'Plus Jakarta Sans',sans-serif!important;margin:10px 14px!important}
+.pp-name{font-family:'Clash Display',sans-serif;font-weight:700;font-size:.9rem;margin-bottom:.18rem}
+.pp-role{color:#60a5fa;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.pp-info{font-size:.78rem;color:#94a3c8;margin:.25rem 0}
+.pp-safety{font-size:.75rem;color:#10b981;margin:.2rem 0}
+.pp-book{margin-top:.6rem;width:100%;padding:.4rem;background:#2563eb;border:none;border-radius:7px;color:#fff;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;font-size:.78rem}
+.pp-book:hover{background:#3b82f6}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;font-weight:600;padding:.8rem 1.3rem;border-radius:12px;font-size:.86rem;z-index:9999;display:none;animation:fadeUp .3s ease;max-width:320px;line-height:1.5}
+.toast.show{display:block}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+
+@media(max-width:780px){
+  .body-split{flex-direction:column}
+  #map{height:260px}
+  .rpanel{width:100%;border-left:none;border-top:1px solid var(--border);max-height:380px}
+  .reg-wrap{grid-template-columns:1fr;padding:1.5rem 1rem}
+  .reg-left{position:static;padding-right:0;margin-bottom:1.5rem}
+  .form-row{grid-template-columns:1fr}
+  .arr-info-grid{grid-template-columns:1fr}
+  .topbar{padding:.8rem 1rem}
+  .search-strip{flex-wrap:wrap;gap:.4rem}
+  .search-strip input{flex-basis:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════
+     PAGE: LANDING
+═══════════════════════════════════ -->
+<div id="pg-land" class="page active">
+  <nav class="topbar">
+    <div class="logo" onclick="showPage('pg-land')">Fixora<sub>™</sub></div>
+    <div class="topbar-right">
+      <button class="btn-ghost" onclick="showPage('pg-reg')">Join as Provider</button>
+      <button class="btn-primary" onclick="showPage('pg-cust')">Find Services</button>
+    </div>
+  </nav>
+  <div class="hero">
+    <div class="eyebrow">🔧 Trusted Local Professionals</div>
+    <h1>Your city's best<br><span class="grad">service pros</span>,<br>one tap away.</h1>
+    <p class="hero-sub">Fixora connects you with verified electricians, plumbers, carpenters, maids and more — right in your neighbourhood.</p>
+    <div class="hero-cards">
+      <div class="hcard" onclick="showPage('pg-cust')">
+        <div class="hcard-icon">🔍</div>
+        <div class="hcard-title">I Need a Service</div>
+        <div class="hcard-desc">Search your area and instantly book trusted local professionals with safety ratings.</div>
+        <div class="hcard-arr">→</div>
+      </div>
+      <div class="hcard" onclick="showPage('pg-reg')">
+        <div class="hcard-icon">🛠️</div>
+        <div class="hcard-title">I Offer a Service</div>
+        <div class="hcard-desc">Register your skill and reach thousands of customers in your area today.</div>
+        <div class="hcard-arr">→</div>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><strong>12,000+</strong> Professionals</div>
+      <div class="stat"><strong>340+</strong> Cities</div>
+      <div class="stat"><strong>4.8★</strong> Avg Rating</div>
+      <div class="stat"><strong>98%</strong> Happy Customers</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     PAGE: CUSTOMER — FIND
+═══════════════════════════════════ -->
+<div id="pg-cust" class="page">
+  <nav class="topbar">
+    <div class="logo" onclick="showPage('pg-land')">Fixora<sub>™</sub></div>
+    <div class="topbar-right">
+      <button class="btn-ghost" onclick="showPage('pg-land')">← Home</button>
+      <button class="btn-primary" onclick="showPage('pg-reg')">Offer a Service</button>
+    </div>
+  </nav>
+  <div class="search-strip">
+    <input type="text" id="locInput" placeholder="Type any city, area or address… e.g. Koramangala Bangalore" autocomplete="off"/>
+    <button class="btn-gps" onclick="detectGPS()">📍 My Location</button>
+    <button class="btn-go" id="goBtn" onclick="doSearch()">Search</button>
+  </div>
+  <div class="cat-strip" id="catStrip">
+    <div class="chip active" data-cat="all" onclick="filterCat('all',this)">🔍 All</div>
+    <div class="chip" data-cat="electrician" onclick="filterCat('electrician',this)">⚡ Electrician</div>
+    <div class="chip" data-cat="plumber" onclick="filterCat('plumber',this)">🔧 Plumber</div>
+    <div class="chip" data-cat="maid" onclick="filterCat('maid',this)">🧹 Maid</div>
+    <div class="chip" data-cat="carpenter" onclick="filterCat('carpenter',this)">🪚 Carpenter</div>
+    <div class="chip" data-cat="painter" onclick="filterCat('painter',this)">🖌️ Painter</div>
+    <div class="chip" data-cat="mechanic" onclick="filterCat('mechanic',this)">🔩 Mechanic</div>
+    <div class="chip" data-cat="cook" onclick="filterCat('cook',this)">👨‍🍳 Cook</div>
+    <div class="chip" data-cat="gardener" onclick="filterCat('gardener',this)">🌿 Gardener</div>
+    <div class="chip" data-cat="other" onclick="filterCat('other',this)">➕ Other</div>
+  </div>
+  <div class="body-split">
+    <div id="map"></div>
+    <div class="rpanel">
+      <div class="rp-hdr">
+        <div class="rp-title">Professionals</div>
+        <div class="rp-count" id="rpCount">Search to explore</div>
+      </div>
+      <div class="rp-list" id="rpList">
+        <div class="empty">
+          <div class="big">🗺️</div>
+          <strong>Enter a location to begin</strong>
+          <p>Type any city, area or address above and tap Search to discover trusted local professionals near you.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     PAGE: PROVIDER REGISTER
+═══════════════════════════════════ -->
+<div id="pg-reg" class="page">
+  <nav class="topbar">
+    <div class="logo" onclick="showPage('pg-land')">Fixora<sub>™</sub></div>
+    <div class="topbar-right">
+      <button class="btn-ghost" onclick="showPage('pg-land')">← Home</button>
+      <button class="btn-primary" onclick="showPage('pg-cust')">Find Services</button>
+    </div>
+  </nav>
+  <div class="reg-wrap">
+    <div class="reg-left">
+      <div class="reg-badge">🛠️ Provider Registration</div>
+      <h2>Start earning with your <span class="bl">skills</span> today</h2>
+      <p>Join thousands of professionals already growing their business on Fixora. Register once, get discovered by customers near you instantly.</p>
+      <div class="perks">
+        <div class="perk"><span>📍</span> Show up on local maps instantly</div>
+        <div class="perk"><span>⭐</span> Build ratings and get more bookings</div>
+        <div class="perk"><span>🛡️</span> Get a verified safety badge</div>
+        <div class="perk"><span>💬</span> Customers contact you directly</div>
+        <div class="perk"><span>🆓</span> Free to join — zero hidden fees</div>
+      </div>
+    </div>
+    <div class="rform">
+      <div class="form-title">Create Your Profile</div>
+      <div class="form-sub">Fill in your details — takes less than 2 minutes</div>
+      <div class="form-row">
+        <div class="fg"><label>Full Name <span class="req-star">*</span></label><input type="text" id="r-name" placeholder="e.g. Ramesh Kumar"/></div>
+        <div class="fg"><label>Phone Number <span class="req-star">*</span></label><input type="tel" id="r-phone" placeholder="+91 98765 43210"/></div>
+      </div>
+      <div class="fg"><label>Your Location / Area <span class="req-star">*</span></label><input type="text" id="r-loc" placeholder="e.g. Andheri West, Mumbai"/></div>
+      <div class="fg"><label>Years of Experience</label>
+        <select id="r-exp"><option value="">Select experience</option><option>Less than 1 year</option><option>1–2 years</option><option>3–5 years</option><option>5–10 years</option><option>10+ years</option></select>
+      </div>
+      <div class="fg">
+        <label>Select Your Service <span class="req-star">*</span></label>
+        <div class="srv-grid" id="srvGrid">
+          <div class="srv-chip" data-cat="electrician" onclick="toggleSrv(this)">⚡ Electrician</div>
+          <div class="srv-chip" data-cat="plumber" onclick="toggleSrv(this)">🔧 Plumber</div>
+          <div class="srv-chip" data-cat="maid" onclick="toggleSrv(this)">🧹 Maid / Cleaning</div>
+          <div class="srv-chip" data-cat="carpenter" onclick="toggleSrv(this)">🪚 Carpenter</div>
+          <div class="srv-chip" data-cat="painter" onclick="toggleSrv(this)">🖌️ Painter</div>
+          <div class="srv-chip" data-cat="mechanic" onclick="toggleSrv(this)">🔩 Mechanic</div>
+          <div class="srv-chip" data-cat="cook" onclick="toggleSrv(this)">👨‍🍳 Cook</div>
+          <div class="srv-chip" data-cat="gardener" onclick="toggleSrv(this)">🌿 Gardener</div>
+          <div class="srv-chip oth-chip" data-cat="other" onclick="toggleSrv(this)">➕ Other (specify)</div>
+        </div>
+      </div>
+      <div class="other-wrap" id="otherWrap">
+        <label>Describe your service</label>
+        <input type="text" id="otherInput" placeholder="e.g. Pest Control, Tutor, Nurse, AC Repair…" oninput="checkOtherMatch()"/>
+        <div class="other-match" id="otherMatch"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Rate per Hour (₹)</label><input type="number" id="r-price" placeholder="e.g. 350" min="50"/></div>
+        <div class="fg"><label>Availability</label>
+          <select id="r-avail"><option>Available Now</option><option>Available from Tomorrow</option><option>Weekends Only</option><option>Flexible</option></select>
+        </div>
+      </div>
+      <div class="fg"><label>Short Bio</label><textarea id="r-bio" placeholder="Tell customers about yourself and your experience…"></textarea></div>
+      <button class="submit-btn" onclick="submitReg()">🚀 Register & Go Live</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     PAGE: ARRIVAL / BOOKING CONFIRMED
+═══════════════════════════════════ -->
+<div id="pg-arrival" class="page">
+  <nav class="topbar">
+    <div class="logo" onclick="showPage('pg-land')">Fixora<sub>™</sub></div>
+    <div class="topbar-right">
+      <button class="btn-ghost" onclick="showPage('pg-cust')">Find More Services</button>
+    </div>
+  </nav>
+  <div class="arrival-wrap">
+    <div class="arr-checkmark">✓</div>
+    <div class="arr-title">Booking Confirmed!</div>
+    <div class="arr-sub" id="arrSub">Your professional is on the way.</div>
+
+    <div class="arr-eta-box">
+      <div class="eta-label">Estimated Arrival</div>
+      <div class="eta-time" id="etaTime">—</div>
+      <div class="eta-note" id="etaNote">Professional will arrive at your location</div>
+    </div>
+
+    <div class="arr-card">
+      <div class="arr-card-title">Booking Summary</div>
+      <div class="arr-info-grid" id="arrGrid"><!-- filled by JS --></div>
+    </div>
+
+    <button class="arr-track-btn" onclick="showToast('📍 Live tracking coming soon!','#2563eb')">Track Professional Live</button>
+    <div class="arr-home-link" onclick="showPage('pg-land')">← Back to Home</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     REVIEWS MODAL
+═══════════════════════════════════ -->
+<div class="overlay" id="revOverlay">
+  <div class="modal rev-modal">
+    <div class="modal-title" id="revModalTitle">Reviews</div>
+    <div class="modal-sub" id="revModalSub"></div>
+    <div class="rev-hero">
+      <div>
+        <div class="rev-big-score" id="revScore">—</div>
+        <div class="rev-big-stars" id="revBigStars"></div>
+        <div class="rev-total" id="revTotal"></div>
+      </div>
+      <div style="flex:1;padding-left:.8rem">
+        <div id="revBars"></div>
+      </div>
+    </div>
+    <!-- Safety Section -->
+    <div class="safety-section">
+      <div class="safety-title">🛡️ Safety & Trust Score</div>
+      <div class="safety-items" id="safetyItems"></div>
+    </div>
+    <!-- Reviews list -->
+    <div class="review-list" id="reviewList"></div>
+    <div style="margin-top:1rem;text-align:right">
+      <button class="btn-ghost" onclick="closeRev()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     BOOKING MODAL
+═══════════════════════════════════ -->
+<div class="overlay" id="bookOverlay">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title">Book a Professional</div>
+    <div class="modal-sub">All fields marked <span style="color:var(--red)">*</span> are required</div>
+
+    <div class="book-pro-info" id="bookProInfo"></div>
+
+    <div class="fg">
+      <label>Your Name <span class="req-star">*</span></label>
+      <input type="text" id="b-name" placeholder="e.g. Priya Sharma"/>
+      <div class="field-err" id="err-name">Please enter your name</div>
+    </div>
+    <div class="fg">
+      <label>Your Phone <span class="req-star">*</span></label>
+      <input type="tel" id="b-phone" placeholder="+91 98765 43210"/>
+      <div class="field-err" id="err-phone">Please enter your phone number</div>
+    </div>
+    <div class="fg">
+      <label>Service Address <span class="req-star">*</span></label>
+      <input type="text" id="b-addr" placeholder="e.g. Flat 4B, Sunrise Apartments, MG Road"/>
+      <div class="field-err" id="err-addr">Please enter the service address</div>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Date <span class="req-star">*</span></label>
+        <input type="date" id="b-date"/>
+        <div class="field-err" id="err-date">Please select a date</div>
+      </div>
+      <div class="fg">
+        <label>Time <span class="req-star">*</span></label>
+        <input type="time" id="b-time"/>
+        <div class="field-err" id="err-time">Please select a time</div>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Duration</label>
+      <select id="b-dur"><option>1 Hour</option><option>2 Hours</option><option>3 Hours</option><option>Half Day (4 hrs)</option><option>Full Day (8 hrs)</option></select>
+    </div>
+    <div class="fg"><label>Notes (optional)</label><textarea id="b-notes" placeholder="Describe the task or any special instructions…" style="height:65px"></textarea></div>
+
+    <div class="book-actions">
+      <button class="btn-book-cancel" onclick="closeBook()">Cancel</button>
+      <button class="btn-book-confirm" onclick="confirmBook()">Confirm Booking</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════
+const REVIEWS_DB = {
+  1:[
+    {name:"Anjali M.",date:"Jan 2025",rating:5,text:"Ramesh fixed all our wiring issues in 2 hours. Very professional and clean work. Highly recommend!",verified:true},
+    {name:"Sandeep K.",date:"Dec 2024",rating:5,text:"Excellent work on AC fitting. Came on time and finished faster than expected.",verified:true},
+    {name:"Pooja R.",date:"Nov 2024",rating:4,text:"Good service overall. Explained everything clearly before starting the job.",verified:false},
+    {name:"Rohit T.",date:"Oct 2024",rating:5,text:"Best electrician I've found on Fixora. Will definitely book again.",verified:true},
+    {name:"Neha S.",date:"Sep 2024",rating:5,text:"Very trustworthy person. Left the house neat and tidy after work.",verified:true},
+  ],
+  2:[
+    {name:"Kavya P.",date:"Feb 2025",rating:5,text:"Suresh fixed the pipe leak perfectly. No mess left behind. Super quick!",verified:true},
+    {name:"Manoj D.",date:"Jan 2025",rating:4,text:"Arrived a bit late but did great work on tap replacement.",verified:true},
+    {name:"Priya N.",date:"Dec 2024",rating:5,text:"Very honest about pricing. No hidden charges. Highly trustworthy.",verified:true},
+    {name:"Arjun K.",date:"Nov 2024",rating:4,text:"Resolved our drainage issue which two others couldn't fix. Skilled!",verified:false},
+  ],
+  3:[
+    {name:"Rekha V.",date:"Feb 2025",rating:5,text:"Meena is an absolute gem. My home has never looked this spotless. She's part of the family now!",verified:true},
+    {name:"Supriya L.",date:"Jan 2025",rating:5,text:"Honest, hardworking, and very thorough. Did a deep clean in just 3 hours.",verified:true},
+    {name:"Deepa M.",date:"Dec 2024",rating:5,text:"Fantastic work. Very respectful of my belongings. Will definitely rebook.",verified:true},
+    {name:"Vikram B.",date:"Nov 2024",rating:4,text:"Very good cleaning but could be a bit more attentive to corners.",verified:true},
+    {name:"Asha T.",date:"Oct 2024",rating:5,text:"Wonderful person. Extremely trustworthy — I leave the house key with her.",verified:true},
+  ],
+  4:[
+    {name:"Harish J.",date:"Dec 2024",rating:5,text:"Vijay made custom cabinets for my kitchen. Exceptional craftsmanship!",verified:true},
+    {name:"Smita R.",date:"Nov 2024",rating:4,text:"Good work on the wardrobe repair. Took a bit longer than quoted.",verified:false},
+    {name:"Gopal S.",date:"Oct 2024",rating:5,text:"Excellent quality. He suggested a better design than I had in mind.",verified:true},
+  ],
+  5:[
+    {name:"Lakshmi T.",date:"Jan 2025",rating:5,text:"Arun painted our entire 3BHK beautifully. Clean, precise lines. Zero drips on floor.",verified:true},
+    {name:"Venkat R.",date:"Dec 2024",rating:4,text:"Good quality paint work. Finished in time. Reasonable pricing.",verified:true},
+    {name:"Meera J.",date:"Nov 2024",rating:5,text:"Very neat and professional. Covered all furniture before starting.",verified:true},
+  ],
+  6:[
+    {name:"Aditya K.",date:"Feb 2025",rating:4,text:"Fixed my car's engine issue quickly. Good knowledge of different car models.",verified:true},
+    {name:"Rahul M.",date:"Jan 2025",rating:5,text:"Best mechanic I've used. Honest diagnosis, fair pricing.",verified:true},
+    {name:"Karan S.",date:"Dec 2024",rating:4,text:"Came to my location and fixed the bike on the spot. Very convenient!",verified:true},
+  ],
+  7:[
+    {name:"Sunita P.",date:"Feb 2025",rating:5,text:"Lata's cooking is absolutely amazing. My kids love her meals every day!",verified:true},
+    {name:"Nandita V.",date:"Jan 2025",rating:5,text:"Hygienic, tasty and always on time. She's become our permanent cook.",verified:true},
+    {name:"Chandra B.",date:"Dec 2024",rating:5,text:"She cooks as well as my mother — I mean that as the highest compliment!",verified:true},
+    {name:"Ramya K.",date:"Nov 2024",rating:4,text:"Good variety of dishes. Occasionally substitutes ingredients without asking.",verified:true},
+  ],
+  8:[
+    {name:"Preeti N.",date:"Jan 2025",rating:4,text:"Mohan transformed our terrace garden beautifully. Very knowledgeable about plants.",verified:true},
+    {name:"Suresh V.",date:"Dec 2024",rating:4,text:"Good work on lawn maintenance. Comes regularly without needing reminders.",verified:true},
+    {name:"Rani D.",date:"Nov 2024",rating:5,text:"Incredible passion for gardening. Our balcony looks like a paradise now!",verified:true},
+  ],
+  9:[
+    {name:"Asha P.",date:"Jan 2025",rating:4,text:"Fixed inverter issue quickly. Good at diagnosing the problem.",verified:true},
+    {name:"Vijay R.",date:"Dec 2024",rating:4,text:"Responsive and helpful. Sorted the MCB problem same day.",verified:true},
+  ],
+  10:[
+    {name:"Nisha T.",date:"Feb 2025",rating:5,text:"Rani is very punctual and thorough. Our house is always spotless.",verified:true},
+    {name:"Pallavi S.",date:"Jan 2025",rating:4,text:"Good work, sometimes needs direction on what to prioritize.",verified:false},
+    {name:"Anita K.",date:"Dec 2024",rating:5,text:"Trustworthy and hardworking. Never had any issues with her.",verified:true},
+  ],
+};
+
+const SAFETY_DB = {
+  1:{score:4.9,bgCheck:true,idVerified:true,trainedPro:true,items:{workQuality:4.9,punctuality:4.8,safety:5.0,communication:4.7,cleanliness:4.8}},
+  2:{score:4.7,bgCheck:true,idVerified:true,trainedPro:false,items:{workQuality:4.8,punctuality:4.5,safety:4.7,communication:4.6,cleanliness:4.9}},
+  3:{score:5.0,bgCheck:true,idVerified:true,trainedPro:true,items:{workQuality:5.0,punctuality:5.0,safety:5.0,communication:4.9,cleanliness:5.0}},
+  4:{score:4.6,bgCheck:true,idVerified:true,trainedPro:true,items:{workQuality:4.8,punctuality:4.3,safety:4.7,communication:4.5,cleanliness:4.6}},
+  5:{score:4.8,bgCheck:false,idVerified:true,trainedPro:true,items:{workQuality:4.9,punctuality:4.7,safety:4.8,communication:4.8,cleanliness:4.9}},
+  6:{score:4.5,bgCheck:true,idVerified:true,trainedPro:false,items:{workQuality:4.6,punctuality:4.4,safety:4.5,communication:4.5,cleanliness:4.4}},
+  7:{score:4.9,bgCheck:true,idVerified:true,trainedPro:true,items:{workQuality:4.9,punctuality:5.0,safety:4.9,communication:4.8,cleanliness:4.9}},
+  8:{score:4.5,bgCheck:false,idVerified:true,trainedPro:false,items:{workQuality:4.6,punctuality:4.4,safety:4.5,communication:4.4,cleanliness:4.5}},
+  9:{score:4.3,bgCheck:true,idVerified:false,trainedPro:false,items:{workQuality:4.4,punctuality:4.2,safety:4.3,communication:4.3,cleanliness:4.2}},
+  10:{score:4.7,bgCheck:true,idVerified:true,trainedPro:false,items:{workQuality:4.7,punctuality:4.8,safety:4.7,communication:4.6,cleanliness:4.8}},
+};
+
+const BASE_PROS = [
+  {id:1,name:"Ramesh Kumar",role:"Electrician",cat:"electrician",emoji:"⚡",bg:"#0e1f2e",rating:4.8,reviews:132,price:350,available:true,phone:"9876543210",tags:["Wiring","Switchboard","AC Fitting"],off:[0.013,0.021]},
+  {id:2,name:"Suresh Patel",role:"Plumber",cat:"plumber",emoji:"🔧",bg:"#0e1020",rating:4.6,reviews:98,price:300,available:true,phone:"9123456780",tags:["Pipe Fix","Leak","Tap Change"],off:[-0.009,0.026]},
+  {id:3,name:"Meena Devi",role:"Maid / Cleaning",cat:"maid",emoji:"🧹",bg:"#1a0e20",rating:4.9,reviews:210,price:200,available:true,phone:"9988776655",tags:["Deep Clean","Daily Help","Utensils"],off:[0.023,-0.015]},
+  {id:4,name:"Vijay Sharma",role:"Carpenter",cat:"carpenter",emoji:"🪚",bg:"#200e0e",rating:4.5,reviews:76,price:500,available:false,phone:"9654321098",tags:["Furniture","Cabinets","Repair"],off:[-0.019,-0.022]},
+  {id:5,name:"Arun Das",role:"Painter",cat:"painter",emoji:"🖌️",bg:"#0e201a",rating:4.7,reviews:54,price:400,available:true,phone:"9321654987",tags:["Interior","Exterior","Waterproof"],off:[0.006,0.031]},
+  {id:6,name:"Kiran Works",role:"Mechanic",cat:"mechanic",emoji:"🔩",bg:"#1a1a0e",rating:4.4,reviews:88,price:450,available:true,phone:"9812345670",tags:["Car","Bike","Engine"],off:[0.031,0.009]},
+  {id:7,name:"Lata Bai",role:"Cook",cat:"cook",emoji:"👩‍🍳",bg:"#0e1f10",rating:4.8,reviews:162,price:250,available:true,phone:"9745612380",tags:["Veg","Non-Veg","Tiffin"],off:[-0.026,0.013]},
+  {id:8,name:"Mohan Green",role:"Gardener",cat:"gardener",emoji:"🌿",bg:"#0a1a0e",rating:4.3,reviews:41,price:280,available:false,phone:"9634521780",tags:["Terrace","Indoor Plants","Pruning"],off:[0.019,-0.031]},
+  {id:9,name:"Deepak Wires",role:"Electrician",cat:"electrician",emoji:"⚡",bg:"#0e1f2e",rating:4.2,reviews:55,price:320,available:true,phone:"9871234560",tags:["Fan Fix","Inverter","MCB"],off:[-0.013,0.006]},
+  {id:10,name:"Rani Singh",role:"Maid / Cleaning",cat:"maid",emoji:"🧹",bg:"#1a0e20",rating:4.6,reviews:90,price:180,available:true,phone:"9900112233",tags:["Sweep","Mop","Laundry"],off:[0.029,0.023]},
+];
+
+let allPros = [...BASE_PROS];
+let regPros = [];
+let proIdSeq = 100;
+
+// ══════════════════════════════════════════════
+//  PAGE ROUTING
+// ══════════════════════════════════════════════
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if(id==='pg-cust' && !mapReady) initMap();
+}
+
+// ══════════════════════════════════════════════
+//  MAP
+// ══════════════════════════════════════════════
+let mapReady=false,leafMap=null;
+let userPin=null,ringLayer=null,proMarkers=[];
+let curLat=null,curLng=null,activeCat='all';
+let shownPros=[];
+let bookTarget=null;
+
+function initMap(){
+  leafMap = L.map('map',{zoomControl:true}).setView([20.59,78.96],5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap contributors',maxZoom:19
+  }).addTo(leafMap);
+  mapReady=true;
+}
+
+function proIcon(emoji){
+  return L.divIcon({
+    className:'',
+    html:`<div style="background:#111d35;border:2px solid #3b82f6;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 3px 12px rgba(37,99,235,.5)">${emoji}</div>`,
+    iconSize:[38,38],iconAnchor:[19,19],popupAnchor:[0,-22]
+  });
+}
+const userIconDef = {
+  className:'',
+  html:`<div style="background:#2563eb;border:3px solid #fff;border-radius:50%;width:20px;height:20px;box-shadow:0 0 0 5px rgba(37,99,235,.35)"></div>`,
+  iconSize:[20,20],iconAnchor:[10,10]
+};
+
+async function geocode(q){
+  const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&accept-language=en`);
+  if(!r.ok) throw new Error('Network error');
+  const d = await r.json();
+  if(!d.length) return null;
+  return{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon),label:d[0].display_name.split(',').slice(0,3).join(', ')};
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('locInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+  // set today as min date for booking
+  const today = new Date().toISOString().split('T')[0];
+  const bdate = document.getElementById('b-date');
+  if(bdate) bdate.min = today;
+});
+
+async function doSearch(){
+  const q = document.getElementById('locInput').value.trim();
+  if(!q){showToast('⚠️ Please enter a location first','#ef4444');return;}
+  setGoLoad(true);
+  try{
+    const r = await geocode(q);
+    if(!r){showToast('❌ Location not found. Try being more specific (e.g. "Bandra Mumbai")','#ef4444');setGoLoad(false);return;}
+    document.getElementById('locInput').value = r.label;
+    placeAll(r.lat,r.lng,r.label);
+  }catch(e){showToast('⚠️ Network error — check your internet connection','#ef4444');}
+  setGoLoad(false);
+}
+
+async function detectGPS(){
+  if(!navigator.geolocation){showToast('❌ Geolocation not supported by this browser','#ef4444');return;}
+  const b = document.querySelector('.btn-gps');
+  b.textContent='⏳…';b.disabled=true;
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const{latitude:lat,longitude:lng} = pos.coords;
+    try{
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+      const d = await r.json();
+      const label = d.address?.suburb||d.address?.city_district||d.address?.city||'Your Location';
+      document.getElementById('locInput').value = label;
+      placeAll(lat,lng,label);
+    }catch{placeAll(lat,lng,'Your Location');}
+    b.textContent='📍 My Location';b.disabled=false;
+  },()=>{showToast('❌ Could not get your location. Please type it.','#ef4444');b.textContent='📍 My Location';b.disabled=false;});
+}
+
+function setGoLoad(on){
+  const b=document.getElementById('goBtn');
+  b.textContent=on?'⏳ Searching…':'Search';b.disabled=on;
+}
+
+function placeAll(lat,lng,label){
+  curLat=lat;curLng=lng;
+  proMarkers.forEach(m=>leafMap.removeLayer(m));proMarkers=[];
+  if(userPin)leafMap.removeLayer(userPin);
+  if(ringLayer)leafMap.removeLayer(ringLayer);
+
+  userPin = L.marker([lat,lng],{icon:L.divIcon(userIconDef)}).addTo(leafMap)
+    .bindPopup(`<div style="color:#e2eaf8;font-size:.83rem">📍 <strong>${label}</strong></div>`);
+
+  ringLayer = L.circle([lat,lng],{radius:5500,color:'#3b82f6',fillColor:'#3b82f6',fillOpacity:0.05,weight:1.5,dashArray:'6,5'}).addTo(leafMap);
+
+  const pool = allPros.filter(p=>activeCat==='all'||p.cat===activeCat);
+  if(!pool.length){renderCards([]);leafMap.setView([lat,lng],13);return;}
+
+  shownPros = pool.map((p,i)=>{
+    const off = p.off||[((i%5)-2)*0.011+Math.random()*0.008,((i%4)-1.5)*0.013+Math.random()*0.008];
+    return{...p,lat:lat+off[0],lng:lng+off[1],distKm:(Math.sqrt(off[0]**2+off[1]**2)*111).toFixed(1)};
+  });
+
+  shownPros.forEach((p,idx)=>{
+    const safety = SAFETY_DB[p.id];
+    const safetyStr = safety ? `🛡️ Safety Score: ${safety.score}/5` : '';
+    const m = L.marker([p.lat,p.lng],{icon:proIcon(p.emoji)}).addTo(leafMap);
+    m.bindPopup(`<div style="min-width:170px">
+      <div class="pp-name">${p.name}</div>
+      <div class="pp-role">${p.role}</div>
+      <div class="pp-info">⭐ ${p.rating} · ${p.reviews} reviews · ₹${p.price}/hr</div>
+      ${safetyStr?`<div class="pp-safety">${safetyStr}</div>`:''}
+      <div class="pp-info">${p.available?'🟢 Available':'🔴 Busy'} &nbsp; 📞 ${p.phone}</div>
+      ${p.available?`<button class="pp-book" onclick="openBook(${p.id})">Book Now</button>`:''}
+    </div>`);
+    m.on('click',()=>hlCard(p.id));
+    proMarkers.push(m);
+  });
+
+  const pts=[[lat,lng],...shownPros.map(p=>[p.lat,p.lng])];
+  leafMap.fitBounds(L.latLngBounds(pts),{padding:[45,45]});
+  renderCards(shownPros);
+}
+
+// ══════════════════════════════════════════════
+//  RENDER CARDS
+// ══════════════════════════════════════════════
+function renderCards(list){
+  const el = document.getElementById('rpList');
+  const ct = document.getElementById('rpCount');
+  if(!list.length){
+    ct.textContent='No results';
+    el.innerHTML=`<div class="empty"><div class="big">😔</div><strong>No local service nearby</strong><p>No ${activeCat!=='all'?activeCat+'s':'professionals'} found near this location.<br>Try a different area or category.</p></div>`;
+    return;
+  }
+  ct.textContent=`${list.length} found nearby`;
+
+  el.innerHTML = list.map((p,i)=>{
+    const safety = SAFETY_DB[p.id];
+    const safeBadges = safety ? `
+      ${safety.bgCheck?'<span class="safety-badge sb-verified">✔ BG Checked</span>':''}
+      ${safety.idVerified?'<span class="safety-badge sb-trusted">🪪 ID Verified</span>':''}
+      ${safety.trainedPro?'<span class="safety-badge sb-safe">🏅 Trained Pro</span>':''}
+      <span class="safety-score">🛡️ <span>${safety.score}/5</span> Safety</span>
+    ` : '';
+
+    return `<div class="scard" id="sc-${p.id}" style="animation-delay:${i*.055}s" onclick="zoomPro(${p.id})">
+      <div class="sc-top">
+        <div class="savatar" style="background:${p.bg}">${p.emoji}</div>
+        <div style="flex:1;min-width:0">
+          <div class="sc-name">${p.name}</div>
+          <div class="sc-role">${p.role}</div>
+          <div class="sc-dist">📍 ~${p.distKm} km away</div>
+        </div>
+        <div class="avpill ${p.available?'av-y':'av-n'}">${p.available?'Available':'Busy'}</div>
+      </div>
+      <div class="safety-row">${safeBadges}</div>
+      <div class="stars-row">
+        <span class="stars">${'★'.repeat(Math.round(p.rating))}${'☆'.repeat(5-Math.round(p.rating))}</span>
+        <span class="rnum">${p.rating}</span>
+        <span class="rcnt" onclick="event.stopPropagation();openRevModal(${p.id})">(${p.reviews} reviews — view all)</span>
+        <span class="pprice">₹${p.price}/hr</span>
+      </div>
+      <div class="stags">${p.tags.map(t=>`<span class="stag">${t}</span>`).join('')}</div>
+      <div class="sc-footer">
+        <a class="btn-ring" href="tel:${p.phone}" onclick="event.stopPropagation()">📞 ${p.phone}</a>
+        <button class="btn-bk" onclick="event.stopPropagation();openBook(${p.id})" ${!p.available?'disabled':''}>
+          ${p.available?'📅 Book Now':'Busy'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function zoomPro(id){
+  const p=shownPros.find(x=>x.id===id);if(!p)return;
+  leafMap.setView([p.lat,p.lng],15,{animate:true});
+  const idx=shownPros.indexOf(p);
+  if(proMarkers[idx])proMarkers[idx].openPopup();
+  hlCard(id);
+}
+function hlCard(id){
+  document.querySelectorAll('.scard').forEach(c=>c.classList.remove('hl'));
+  const c=document.getElementById('sc-'+id);
+  if(c){c.classList.add('hl');c.scrollIntoView({behavior:'smooth',block:'nearest'});}
+}
+function filterCat(cat,el){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');activeCat=cat;
+  if(curLat!==null) placeAll(curLat,curLng,document.getElementById('locInput').value);
+}
+
+// ══════════════════════════════════════════════
+//  REVIEWS MODAL
+// ══════════════════════════════════════════════
+function openRevModal(id){
+  const pro = allPros.find(p=>p.id===id);
+  if(!pro) return;
+  const reviews = REVIEWS_DB[id]||[];
+  const safety = SAFETY_DB[id];
+
+  document.getElementById('revModalTitle').textContent = pro.name + ' — Reviews';
+  document.getElementById('revModalSub').textContent = `${pro.role} · ₹${pro.price}/hr`;
+  document.getElementById('revScore').textContent = pro.rating;
+  document.getElementById('revBigStars').innerHTML = '★'.repeat(Math.round(pro.rating))+'☆'.repeat(5-Math.round(pro.rating));
+  document.getElementById('revTotal').textContent = `${pro.reviews} total reviews`;
+
+  // Rating bars (1–5)
+  const counts=[0,0,0,0,0];
+  reviews.forEach(r=>counts[r.rating-1]++);
+  const maxC=Math.max(...counts,1);
+  document.getElementById('revBars').innerHTML=[5,4,3,2,1].map(s=>`
+    <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem;font-size:.75rem">
+      <span style="color:#f59e0b;min-width:16px">${s}★</span>
+      <div style="flex:1;height:5px;background:var(--surface3);border-radius:99px;overflow:hidden">
+        <div style="width:${(counts[s-1]/maxC)*100}%;height:100%;background:#f59e0b;border-radius:99px"></div>
+      </div>
+      <span style="color:var(--muted);min-width:16px">${counts[s-1]}</span>
+    </div>
+  `).join('');
+
+  // Safety section
+  if(safety){
+    const safetyLabels={workQuality:'Work Quality',punctuality:'Punctuality',safety:'Safety',communication:'Communication',cleanliness:'Cleanliness'};
+    document.getElementById('safetyItems').innerHTML = Object.entries(safety.items).map(([k,v])=>`
+      <div class="safety-item">
+        <span class="label">${safetyLabels[k]||k}</span>
+        <div class="safety-bar-wrap">
+          <div class="safety-bar"><div class="safety-fill" style="width:${(v/5)*100}%"></div></div>
+          <span class="safety-val">${v}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Reviews list
+  document.getElementById('reviewList').innerHTML = reviews.length ? reviews.map(r=>`
+    <div class="review-item">
+      <div class="ri-top">
+        <div class="ri-name">${r.name}</div>
+        <div class="ri-date">${r.date}</div>
+      </div>
+      <div class="ri-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+      <div class="ri-text">${r.text}</div>
+      ${r.verified?'<div class="ri-badge">✔ Verified Booking</div>':''}
+    </div>
+  `).join('') : '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">No reviews yet.</div>';
+
+  document.getElementById('revOverlay').classList.add('open');
+}
+function closeRev(){document.getElementById('revOverlay').classList.remove('open');}
+document.getElementById('revOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('revOverlay'))closeRev();});
+
+// ══════════════════════════════════════════════
+//  BOOKING MODAL — with mandatory validation
+// ══════════════════════════════════════════════
+function openBook(id){
+  bookTarget = allPros.find(p=>p.id===id)||shownPros.find(p=>p.id===id);
+  if(!bookTarget) return;
+
+  // populate pro info strip
+  document.getElementById('bookProInfo').innerHTML=`
+    <div class="book-av" style="background:${bookTarget.bg}">${bookTarget.emoji}</div>
+    <div>
+      <div class="book-pro-name">${bookTarget.name}</div>
+      <div class="book-pro-role">${bookTarget.role}</div>
+      <div class="book-pro-price">₹${bookTarget.price}/hr · 📞 ${bookTarget.phone}</div>
+    </div>`;
+
+  // clear fields & errors
+  ['b-name','b-phone','b-addr','b-notes'].forEach(id=>{document.getElementById(id).value='';document.getElementById(id).classList.remove('err');});
+  document.getElementById('b-date').value='';
+  document.getElementById('b-time').value='';
+  ['err-name','err-phone','err-addr','err-date','err-time'].forEach(id=>document.getElementById(id).classList.remove('show'));
+
+  document.getElementById('bookOverlay').classList.add('open');
+}
+function closeBook(){document.getElementById('bookOverlay').classList.remove('open');}
+document.getElementById('bookOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('bookOverlay'))closeBook();});
+
+function confirmBook(){
+  // Validate mandatory fields
+  const name=document.getElementById('b-name').value.trim();
+  const phone=document.getElementById('b-phone').value.trim();
+  const addr=document.getElementById('b-addr').value.trim();
+  const date=document.getElementById('b-date').value;
+  const time=document.getElementById('b-time').value;
+
+  let valid=true;
+  const setErr=(fid,eid,cond)=>{
+    const f=document.getElementById(fid);
+    const e=document.getElementById(eid);
+    if(cond){f.classList.add('err');e.classList.add('show');valid=false;}
+    else{f.classList.remove('err');e.classList.remove('show');}
+  };
+
+  setErr('b-name','err-name',!name);
+  setErr('b-phone','err-phone',!phone);
+  setErr('b-addr','err-addr',!addr);
+  setErr('b-date','err-date',!date);
+  setErr('b-time','err-time',!time);
+
+  if(!valid){
+    showToast('⚠️ Please fill in all required fields','#ef4444');
+    return;
+  }
+
+  const dur=document.getElementById('b-dur').value;
+  const notes=document.getElementById('b-notes').value.trim();
+
+  // Calculate arrival time
+  const bookDT = new Date(`${date}T${time}`);
+  const travelMin = Math.floor(Math.random()*30)+15; // 15–45 min ETA
+  const arrivalDT = new Date(bookDT.getTime() - travelMin*60*1000);
+  // if booking is future, professional arrives [travelMin] before scheduled time
+  const etaDisplay = travelMin + ' min';
+
+  closeBook();
+
+  // Fill arrival page
+  document.getElementById('arrSub').textContent = `${bookTarget.name} (${bookTarget.role}) is confirmed for your booking.`;
+  document.getElementById('etaTime').innerHTML = `${travelMin}<span class="eta-unit"> min</span>`;
+  document.getElementById('etaNote').textContent = `${bookTarget.name} will arrive ~${travelMin} minutes before your scheduled time`;
+
+  const dateStr = new Date(`${date}T${time}`).toLocaleString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('arrGrid').innerHTML = `
+    <div class="arr-info-item"><div class="ai-label">Professional</div><div class="ai-val">${bookTarget.name}</div></div>
+    <div class="arr-info-item"><div class="ai-label">Service</div><div class="ai-val">${bookTarget.role}</div></div>
+    <div class="arr-info-item"><div class="ai-label">Scheduled At</div><div class="ai-val">${dateStr}</div></div>
+    <div class="arr-info-item"><div class="ai-label">Duration</div><div class="ai-val">${dur}</div></div>
+    <div class="arr-info-item"><div class="ai-label">Address</div><div class="ai-val">${addr}</div></div>
+    <div class="arr-info-item"><div class="ai-label">Your Contact</div><div class="ai-val">${phone}</div></div>
+    <div class="arr-info-item"><div class="ai-label">Rate</div><div class="ai-val">₹${bookTarget.price}/hr</div></div>
+    <div class="arr-info-item"><div class="ai-label">Booking ID</div><div class="ai-val">#FX${Date.now().toString().slice(-6)}</div></div>
+    ${notes?`<div class="arr-info-item" style="grid-column:1/-1"><div class="ai-label">Notes</div><div class="ai-val" style="font-size:.9rem">${notes}</div></div>`:''}
+  `;
+
+  showPage('pg-arrival');
+}
+
+// ══════════════════════════════════════════════
+//  PROVIDER REGISTRATION
+// ══════════════════════════════════════════════
+const CAT_KEYWORDS={
+  electrician:['electric','wiring','wire','switchboard','ac fitting','inverter','mcb','fan install','socket','fuse','circuit'],
+  plumber:['plumb','pipe','leak','tap','drain','water','sewage','bathroom','toilet','sink'],
+  maid:['maid','clean','sweep','mop','wash','laundry','housekeeping','domestic'],
+  carpenter:['carpent','wood','furniture','cabinet','door','window frame','shelf','joiner'],
+  painter:['paint','colour','color','interior','exterior','wall','waterproof'],
+  mechanic:['mechanic','car repair','bike repair','vehicle','engine','motor','automobile','tyre'],
+  cook:['cook','chef','food','meal','tiffin','catering','kitchen','bake'],
+  gardener:['garden','plant','grass','lawn','prune','horticulture','terrace garden','landscape'],
+};
+const CAT_META={
+  electrician:{emoji:'⚡',label:'Electrician'},
+  plumber:{emoji:'🔧',label:'Plumber'},
+  maid:{emoji:'🧹',label:'Maid / Cleaning'},
+  carpenter:{emoji:'🪚',label:'Carpenter'},
+  painter:{emoji:'🖌️',label:'Painter'},
+  mechanic:{emoji:'🔩',label:'Mechanic'},
+  cook:{emoji:'👨‍🍳',label:'Cook'},
+  gardener:{emoji:'🌿',label:'Gardener'},
+};
+const OTHER_EMOJIS=['🔑','🏠','🛁','🌡️','📦','🔒','💊','💻','🎵','🚗'];
+
+let selCat=null,isOther=false;
+
+function toggleSrv(el){
+  document.querySelectorAll('.srv-chip').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  const cat=el.dataset.cat;
+  if(cat==='other'){
+    isOther=true;selCat='other';
+    document.getElementById('otherWrap').classList.add('show');
+    document.getElementById('otherInput').focus();
+    document.getElementById('otherMatch').classList.remove('show');
+  }else{
+    isOther=false;selCat=cat;
+    document.getElementById('otherWrap').classList.remove('show');
+    document.getElementById('otherInput').value='';
+    document.getElementById('otherMatch').classList.remove('show');
+  }
+}
+
+function checkOtherMatch(){
+  const val=document.getElementById('otherInput').value.trim().toLowerCase();
+  const m=document.getElementById('otherMatch');
+  if(!val){m.classList.remove('show');selCat='other';isOther=true;return;}
+  let matched=null;
+  for(const[cat,keys] of Object.entries(CAT_KEYWORDS)){
+    if(keys.some(k=>val.includes(k)||k.includes(val))){matched=cat;break;}
+  }
+  if(matched){
+    const meta=CAT_META[matched];
+    m.style.background='rgba(16,185,129,.1)';m.style.borderColor='rgba(16,185,129,.3)';m.style.color='var(--green)';
+    m.textContent=`✅ Matched to "${meta.emoji} ${meta.label}" — no duplicate category created.`;
+    m.classList.add('show');selCat=matched;isOther=false;
+  }else{
+    m.style.background='rgba(37,99,235,.1)';m.style.borderColor='rgba(96,165,250,.3)';m.style.color='#60a5fa';
+    m.textContent='➕ New service — you\'ll be listed under "Other" with your custom label.';
+    m.classList.add('show');selCat='other';isOther=true;
+  }
+}
+
+function submitReg(){
+  const name=document.getElementById('r-name').value.trim();
+  const phone=document.getElementById('r-phone').value.trim();
+  const loc=document.getElementById('r-loc').value.trim();
+  const price=parseInt(document.getElementById('r-price').value)||300;
+  if(!name){showToast('⚠️ Please enter your name','#ef4444');return;}
+  if(!phone){showToast('⚠️ Please enter your phone','#ef4444');return;}
+  if(!loc){showToast('⚠️ Please enter your location','#ef4444');return;}
+  if(!selCat){showToast('⚠️ Please select a service','#ef4444');return;}
+  let finalCat=selCat,finalRole,finalEmoji,finalTags;
+  if(finalCat==='other'){
+    const cv=document.getElementById('otherInput').value.trim();
+    if(!cv){showToast('⚠️ Please describe your service','#ef4444');return;}
+    finalRole=cv.charAt(0).toUpperCase()+cv.slice(1);
+    finalEmoji=OTHER_EMOJIS[Math.floor(Math.random()*OTHER_EMOJIS.length)];
+    finalTags=[cv];
+  }else{
+    const meta=CAT_META[finalCat];
+    finalRole=meta.label;finalEmoji=meta.emoji;finalTags=[meta.label,'Professional'];
+  }
+  const avail=document.getElementById('r-avail').value;
+  const newPro={
+    id:++proIdSeq,name,role:finalRole,cat:finalCat,emoji:finalEmoji,
+    bg:'#0e1525',rating:5.0,reviews:0,price,
+    available:avail==='Available Now',phone:phone.replace(/\s/g,''),
+    tags:finalTags,bio:document.getElementById('r-bio').value.trim(),off:null,isNew:true
+  };
+  allPros.push(newPro);
+  REVIEWS_DB[newPro.id]=[];
+  SAFETY_DB[newPro.id]={score:5.0,bgCheck:false,idVerified:false,trainedPro:false,items:{workQuality:5.0,punctuality:5.0,safety:5.0,communication:5.0,cleanliness:5.0}};
+
+  showToast(`🎉 ${name} is now live on Fixora as ${finalRole}!`,'#10b981');
+
+  // Reset
+  ['r-name','r-phone','r-loc','r-price','r-bio'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('r-exp').selectedIndex=0;document.getElementById('r-avail').selectedIndex=0;
+  document.querySelectorAll('.srv-chip').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('otherWrap').classList.remove('show');
+  document.getElementById('otherInput').value='';
+  document.getElementById('otherMatch').classList.remove('show');
+  selCat=null;isOther=false;
+
+  setTimeout(()=>showPage('pg-cust'),1200);
+}
+
+// ══════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════
+function showToast(msg,bg='#2563eb'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.background=bg;t.style.color=bg==='#10b981'?'#000':'#fff';
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>t.classList.remove('show'),4000);
+}
+</script>
+</body>
+</html>
